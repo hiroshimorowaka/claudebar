@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Every setting of the widget, read from $XDG_CONFIG_HOME/claude-usage/config.json
+// Every setting of the widget, read from $XDG_CONFIG_HOME/claudebar/config.json
 // and reloaded live when the file changes. Missing keys fall back to the
 // defaults below, so a missing, empty or broken config still draws the widget.
 QtObject {
@@ -72,7 +72,7 @@ QtObject {
   function alpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a) }
 
   property FileView file: FileView {
-    path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/claude-usage/config.json"
+    path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/claudebar/config.json"
     watchChanges: true
     printErrors: false
     onFileChanged: reload()

@@ -6,8 +6,8 @@ import qs
 // Claude usage widget for the GNOME taskbar.
 //
 // This process owns the data and the card. The taskbar icon is a GNOME Shell
-// extension (claude-usage@hiroshi) that draws the state written to
-// $XDG_RUNTIME_DIR/claude-usage.json and calls the IPC below on click.
+// extension (claudebar@hiroshi) that draws the state written to
+// $XDG_RUNTIME_DIR/claudebar.json and calls the IPC below on click.
 ShellRoot {
   id: shell
 
@@ -38,7 +38,7 @@ ShellRoot {
   }
 
   IpcHandler {
-    target: "claude-usage"
+    target: "claudebar"
 
     // x: icon center; edge: taskbar edge facing the screen; both global.
     // size: taskbar height; position: "top" or "bottom".
@@ -82,7 +82,7 @@ ShellRoot {
 
   FileView {
     id: stateFile
-    path: Quickshell.env("XDG_RUNTIME_DIR") + "/claude-usage.json"
+    path: Quickshell.env("XDG_RUNTIME_DIR") + "/claudebar.json"
     printErrors: false
   }
 }

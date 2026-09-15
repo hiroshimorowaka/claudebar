@@ -1,8 +1,8 @@
 // Claude usage in the GNOME taskbar.
 //
 // The data and the usage card live in Quickshell (~/.config/quickshell/
-// claude-usage). That process writes what the icon shows — label, colors,
-// stale mark, alert dot, tooltip, style — to $XDG_RUNTIME_DIR/claude-usage.json.
+// claudebar). That process writes what the icon shows — label, colors,
+// stale mark, alert dot, tooltip, style — to $XDG_RUNTIME_DIR/claudebar.json.
 // This extension draws it and forwards clicks.
 
 import Clutter from 'gi://Clutter';
@@ -14,21 +14,21 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const WIDGET = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'quickshell', 'claude-usage']);
-const STATE = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'claude-usage.json']);
+const WIDGET = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'quickshell', 'claudebar']);
+const STATE = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'claudebar.json']);
 const USAGE_URL = 'https://claude.ai/settings/usage';
 const DIM = '#838687';
 
-export default class ClaudeUsageExtension extends Extension {
+export default class ClaudebarExtension extends Extension {
     enable() {
-        this._button = new PanelMenu.Button(0.5, 'Claude Usage', true);
+        this._button = new PanelMenu.Button(0.5, 'Claudebar', true);
 
         const center = Clutter.ActorAlign.CENTER;
-        const box = new St.BoxLayout({style_class: 'claude-usage-box', y_align: center});
-        this._icon = new St.Label({text: '', style_class: 'claude-usage-icon', y_align: center});
-        this._label = new St.Label({style_class: 'claude-usage-label', y_align: center, visible: false});
-        this._stale = new St.Label({text: '', style_class: 'claude-usage-stale', y_align: center, visible: false});
-        this._dot = new St.Widget({style_class: 'claude-usage-dot', y_align: center, visible: false});
+        const box = new St.BoxLayout({style_class: 'claudebar-box', y_align: center});
+        this._icon = new St.Label({text: '', style_class: 'claudebar-icon', y_align: center});
+        this._label = new St.Label({style_class: 'claudebar-label', y_align: center, visible: false});
+        this._stale = new St.Label({text: '', style_class: 'claudebar-stale', y_align: center, visible: false});
+        this._dot = new St.Widget({style_class: 'claudebar-dot', y_align: center, visible: false});
         for (const child of [this._icon, this._label, this._stale, this._dot])
             box.add_child(child);
         this._button.add_child(box);
@@ -36,7 +36,7 @@ export default class ClaudeUsageExtension extends Extension {
         this._button.connect('button-press-event', (_actor, event) => this._onPress(event.get_button()));
         this._button.connect('notify::hover', () => this._syncTooltip());
 
-        this._tooltip = new St.Label({style_class: 'claude-usage-tooltip', visible: false});
+        this._tooltip = new St.Label({style_class: 'claudebar-tooltip', visible: false});
         Main.layoutManager.addTopChrome(this._tooltip);
 
         Main.panel.addToStatusArea(this.uuid, this._button, 0, 'right');
@@ -123,11 +123,11 @@ export default class ClaudeUsageExtension extends Extension {
         if (button === Clutter.BUTTON_PRIMARY) {
             const [x] = this._button.get_transformed_position();
             const bar = this._barGeometry();
-            this._run(['qs', '-p', WIDGET, 'ipc', 'call', 'claude-usage', 'toggleAt',
+            this._run(['qs', '-p', WIDGET, 'ipc', 'call', 'claudebar', 'toggleAt',
                 String(Math.round(x + this._button.width / 2)), String(Math.round(bar.edge)),
                 String(Math.round(bar.size)), bar.position]);
         } else if (button === Clutter.BUTTON_MIDDLE) {
-            this._run(['qs', '-p', WIDGET, 'ipc', 'call', 'claude-usage', 'refresh']);
+            this._run(['qs', '-p', WIDGET, 'ipc', 'call', 'claudebar', 'refresh']);
         } else if (button === Clutter.BUTTON_SECONDARY) {
             this._run(['xdg-open', USAGE_URL]);
         }
@@ -151,7 +151,7 @@ export default class ClaudeUsageExtension extends Extension {
         try {
             GLib.spawn_async(null, argv, null, GLib.SpawnFlags.SEARCH_PATH, null);
         } catch (e) {
-            console.error(`claude-usage: ${argv[0]} failed: ${e.message}`);
+            console.error(`claudebar: ${argv[0]} failed: ${e.message}`);
         }
     }
 }

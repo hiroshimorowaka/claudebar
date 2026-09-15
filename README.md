@@ -49,7 +49,7 @@ It is built for a GNOME X11 desktop, such as Zorin OS or Ubuntu on Xorg, with [Q
 The installer also installs these two, if they are missing:
 
 - The [`claudebar` CLI](https://github.com/mryll/claudebar), which fetches the usage data, into `~/.local/bin`.
-- [Font Awesome](https://fontawesome.com/) 7 Brands, for the Claude glyph, into `~/.local/share/fonts/claude-usage`.
+- [Font Awesome](https://fontawesome.com/) 7 Brands, for the Claude glyph, into `~/.local/share/fonts/claudebar`.
 
 ## Installation
 
@@ -62,9 +62,9 @@ cd ~/projects/widgets/claudebar
 The installer:
 
 1. Checks the requirements, and installs the `claudebar` CLI and the Font Awesome Brands font if they are missing.
-2. Links `quickshell/` to `~/.config/quickshell/claude-usage` and `gnome-extension/` to `~/.local/share/gnome-shell/extensions/claude-usage@hiroshi`. The files stay in the repository, so a `git pull` updates the widget.
-3. Creates `~/.config/claude-usage/config.json` from `config.example.json`. It never replaces a config that exists.
-4. Starts the widget and adds `~/.config/autostart/claude-usage.desktop`, so it starts with your session.
+2. Links `quickshell/` to `~/.config/quickshell/claudebar` and `gnome-extension/` to `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`. The files stay in the repository, so a `git pull` updates the widget.
+3. Creates `~/.config/claudebar/config.json` from `config.example.json`. It never replaces a config that exists.
+4. Starts the widget and adds `~/.config/autostart/claudebar.desktop`, so it starts with your session.
 5. Enables the GNOME extension.
 
 You can run the installer again at any time. It keeps your config.
@@ -87,15 +87,15 @@ The footer of the card shows the time of the last update and a refresh button (ó
 The widget answers IPC, so a GNOME custom shortcut or a script can drive it:
 
 ```bash
-qs -p ~/.config/quickshell/claude-usage ipc call claude-usage refresh   # fetch now
-qs -p ~/.config/quickshell/claude-usage ipc call claude-usage close     # close the card
+qs -p ~/.config/quickshell/claudebar ipc call claudebar refresh   # fetch now
+qs -p ~/.config/quickshell/claudebar ipc call claudebar close     # close the card
 ```
 
 `toggleAt <x> <edge> <size> <top|bottom>` opens the card at a position on the screen. The extension calls it with the icon position.
 
 ## Configuration
 
-Edit `~/.config/claude-usage/config.json`. The widget reloads it when you save. A key that is missing takes its default value.
+Edit `~/.config/claudebar/config.json`. The widget reloads it when you save. A key that is missing takes its default value.
 
 ```json
 {
@@ -165,7 +165,7 @@ The four colors of the meter gauge: `low` at 0%, `mid` at 50%, `high` at 75% and
 1. The `claudebar` CLI reads the OAuth credentials from `~/.claude/.credentials.json`. The Claude CLI writes that file.
 2. The CLI refreshes the access token if the token expires in less than 5 minutes, and calls `api.anthropic.com/api/oauth/usage` for the usage data.
 3. The widget runs `claudebar --json` in Quickshell at each refresh, and draws the card from the structured output.
-4. The widget writes what the taskbar icon shows, the label, the colors, the marks and the tooltip, to `$XDG_RUNTIME_DIR/claude-usage.json`.
+4. The widget writes what the taskbar icon shows, the label, the colors, the marks and the tooltip, to `$XDG_RUNTIME_DIR/claudebar.json`.
 5. The GNOME extension watches that file, draws the icon, and calls the widget IPC when you click.
 
 ```
@@ -192,14 +192,14 @@ install.sh        install, update and uninstall
 | "Log in with the claude CLI" in the card | No credentials | Run `claude` to log in |
 | An HTTP error at the bottom of the card | API error behind data that is still usable | Examine your internet connection. A 4xx error usually needs a new login. |
 | "claudebar not found on PATH" in the card | The CLI is not installed | Run `./install.sh` again, or copy the command with the button in the card |
-| No icon in the taskbar | The extension is not loaded | Restart GNOME Shell with `Alt+F2`, `r`. Then run `gnome-extensions info claude-usage@hiroshi`. |
-| The icon does nothing on click | The widget is not running | Run `qs -p ~/.config/quickshell/claude-usage -d` |
+| No icon in the taskbar | The extension is not loaded | Restart GNOME Shell with `Alt+F2`, `r`. Then run `gnome-extensions info claudebar@hiroshi`. |
+| The icon does nothing on click | The widget is not running | Run `qs -p ~/.config/quickshell/claudebar -d` |
 
 **The card ignores my keyboard.** Click once inside the card, then use the keys.
 
 **The Claude glyph is a box.** Run `fc-list | grep "Font Awesome 7 Brands"`. If it prints nothing, run `./install.sh` again.
 
-**The widget logs.** Run `qs -p ~/.config/quickshell/claude-usage log`.
+**The widget logs.** Run `qs -p ~/.config/quickshell/claudebar log`.
 
 ## Uninstall
 
@@ -207,7 +207,7 @@ install.sh        install, update and uninstall
 ./install.sh --uninstall
 ```
 
-This stops the widget, disables the extension, and removes the links and the autostart entry. It keeps `~/.config/claude-usage/config.json`, the `claudebar` CLI and the font.
+This stops the widget, disables the extension, and removes the links and the autostart entry. It keeps `~/.config/claudebar/config.json`, the `claudebar` CLI and the font.
 
 ## Credits
 

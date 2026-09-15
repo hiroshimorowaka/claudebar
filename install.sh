@@ -7,8 +7,8 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
-NAME="claude-usage"
-UUID="claude-usage@hiroshi"
+NAME="claudebar"
+UUID="claudebar@hiroshi"
 
 QS_DIR="$HOME/.config/quickshell/$NAME"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"
@@ -119,7 +119,7 @@ install_widget() {
   cat >"$AUTOSTART" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Claude Usage
+Name=Claudebar
 Exec=$(command -v qs) -p $QS_DIR -d
 X-GNOME-Autostart-enabled=true
 NoDisplay=true
