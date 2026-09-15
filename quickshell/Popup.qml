@@ -22,7 +22,7 @@ PanelWindow {
 
   signal closeRequested()
 
-  default property alias content: holder.children
+  default property alias content: card.content
 
   screen: anchorScreen
   visible: open || card.opacity > 0
@@ -38,11 +38,7 @@ PanelWindow {
     right: true
   }
 
-  readonly property int inset: Theme.padding + Theme.borderWidth
-  readonly property int cardHeight: {
-    var available = screen ? screen.height - barSize - Theme.gap * 2 : contentHeight
-    return Math.round(Math.min(contentHeight + inset * 2, Theme.panelMaxHeight, available))
-  }
+  readonly property int cardHeight: card.height
 
   readonly property point cardOrigin: {
     if (!screen) return Qt.point(Theme.gap, Theme.gap)
@@ -94,30 +90,14 @@ PanelWindow {
     }
   }
 
-  Rectangle {
+  Card {
     id: card
     x: root.cardOrigin.x
     y: root.cardOrigin.y
-    width: Theme.panelWidth
-    height: root.cardHeight
-    color: Theme.alpha(Theme.background, Theme.backgroundOpacity)
-    border.color: Theme.border
-    border.width: Theme.borderWidth
-    radius: Theme.radius
+    contentHeight: root.contentHeight
+    maxHeight: root.screen ? Math.min(Theme.panelMaxHeight, root.screen.height - root.barSize - Theme.gap * 2) : Theme.panelMaxHeight
     opacity: root.open ? 1 : 0
 
     Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-
-    // Swallow clicks on the card so they do not reach the dismiss area.
-    MouseArea {
-      anchors.fill: parent
-      acceptedButtons: Qt.AllButtons
-    }
-
-    Item {
-      id: holder
-      anchors.fill: parent
-      anchors.margins: root.inset
-    }
   }
 }

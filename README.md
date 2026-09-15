@@ -1,18 +1,21 @@
-# claudebar
+# claudebar for GNOME
 
-claudebar shows how much of your Claude AI plan you have used, in the GNOME taskbar. It shows the session limit, the weekly limit and the per-model limits. Each one has a progress bar, a color for the level of use, and the time until it resets.
+A GNOME X11 frontend for [claudebar](https://github.com/mryll/claudebar) by mryll: it shows how much of your Claude AI plan you have used, in the GNOME taskbar.
 
-The taskbar shows the Claude glyph and a short usage percentage. A click opens a card with one section for each limit.
+> [!NOTE]
+> **This is a wrapper, not a new implementation.** All the usage data comes from the original [`claudebar` CLI](https://github.com/mryll/claudebar): it reads your Claude credentials, calls the usage API, caches the answer, and works out the limits, the pace and the color gauge. claudebar ships frontends for Waybar and for the Omarchy shell, which run on Wayland. This project brings the Omarchy shell panel to a GNOME desktop on X11, such as Zorin OS or Ubuntu on Xorg.
+
+The taskbar shows the Claude glyph and a short usage percentage. A click opens a card with one section for each limit: the session limit, the weekly limit and the per-model limits, each with a progress bar, a color for the level of use, and the time until it resets.
 
 <p align="center">
-  <img src="screenshots/panel.png" alt="The claudebar usage card" width="340">
+  <img src="screenshots/panel.png" alt="The claudebar usage card for GNOME" width="340">
 </p>
-
-It is built for a GNOME X11 desktop, such as Zorin OS or Ubuntu on Xorg, with [Quickshell](https://quickshell.org) for the card and a small GNOME Shell extension for the taskbar icon.
 
 ## Contents
 
+- [What comes from where](#what-comes-from-where)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -23,19 +26,65 @@ It is built for a GNOME X11 desktop, such as Zorin OS or Ubuntu on Xorg, with [Q
 - [Tests](#tests)
 - [Credits](#credits)
 
+## What comes from where
+
+| Part | Source |
+|---|---|
+| Usage data: credentials, token refresh, API calls, cache, rate-limit handling, limits, pace, extra usage, gauge thresholds and colors | The [`claudebar` CLI](https://github.com/mryll/claudebar), unchanged. The widget runs `claudebar --json`. |
+| Card content and behavior: sections, animated meters, pace marker, freshness footer, taskbar label, alert dot and pause mark | Adapted from claudebar's Omarchy shell plugin (`omarchy/Panel.qml` and `omarchy/BarWidget.qml`) |
+| Visual design of the card | The [Omarchy](https://github.com/basecamp/omarchy) shell |
+| X11 popup window, GNOME Shell extension for the taskbar icon, JSON config, installer, screenshots and test suite | This project |
+
 ## Features
+
+From the claudebar CLI:
 
 - Session (5h) and weekly (7d) limits, each with a countdown to the reset.
 - Per-model limits, such as a weekly limit for one model, when the API reports them.
 - Extra usage: the money spent this month, the prepaid balance that is left, and the monthly limit.
-- Pace indicators that compare your use with the time that has passed, with a marker on each meter.
-- A color gauge along each meter: green at 0%, amber in the middle, red at the top. Each number takes the color of the gauge at its own value.
-- Meters that sweep from zero every time the card opens.
+- Pace indicators that compare your use with the time that has passed.
+- A green-to-red color gauge with fixed thresholds.
+- A 60-second cache, automatic token refresh, and cached data while the API or the network fails.
+
+From the Omarchy plugin, ported to GNOME:
+
+- A card with one animated meter per limit. Each meter paints the gauge along its length, and each number takes the color of the gauge at its own value.
+- A pace marker on each meter, and a footer with the time of the last update and a refresh button.
 - An alert dot on the taskbar icon when a limit that is *not* on the taskbar reaches 90% or more, with a tooltip that names it.
 - A pause mark on the taskbar icon while the widget shows cached data.
-- Mouse and keyboard controls, plus IPC for keybinds and scripts.
-- Works with the taskbar at the top or at the bottom of the screen.
+
+Added by this project:
+
+- The GNOME taskbar icon, with the taskbar at the top or at the bottom of the screen.
+- Keyboard control in the card, and IPC for keybinds and scripts.
 - One JSON config for behavior, colors, fonts, sizes, corner radius and border, reloaded live.
+- An installer that also removes everything it added.
+
+## Screenshots
+
+Every screenshot here comes from `screenshots/generate.sh`: the real widget and the real `claudebar` CLI, with fake credentials and a fake API response. Refer to [Tests](#tests).
+
+| Max plan | Pro plan | Monochrome (`"colors": "none"`) |
+| :---: | :---: | :---: |
+| <img src="screenshots/panel.png" alt="Max plan with per-model limits and extra usage" width="260"> | <img src="screenshots/panel-pro.png" alt="Pro plan with the session and weekly limits" width="260"> | <img src="screenshots/panel-monochrome.png" alt="The card without color" width="260"> |
+
+When something goes wrong, the widget keeps the last good data on screen and says why:
+
+| Network down: cached data | API error: cached data | Waiting for the first data |
+| :---: | :---: | :---: |
+| <img src="screenshots/panel-stale-network.png" alt="Cached data while the network is down" width="260"> | <img src="screenshots/panel-api-error.png" alt="Cached data behind an HTTP 503 error" width="260"> | <img src="screenshots/panel-loading.png" alt="No data yet" width="260"> |
+
+| Not logged in | claudebar CLI missing |
+| :---: | :---: |
+| <img src="screenshots/panel-not-logged-in.png" alt="No Claude credentials" width="260"> | <img src="screenshots/panel-cli-missing.png" alt="The claudebar CLI is not installed" width="260"> |
+
+To make them again, for example after a change to the card:
+
+```bash
+screenshots/generate.sh
+```
+
+It needs `qs` and the `claudebar` CLI on your `PATH`, and uses the fonts you have installed.
 
 ## Requirements
 
@@ -49,7 +98,7 @@ It is built for a GNOME X11 desktop, such as Zorin OS or Ubuntu on Xorg, with [Q
 
 The installer also installs these two, if they are missing:
 
-- The [`claudebar` CLI](https://github.com/mryll/claudebar), which fetches the usage data, into `~/.local/bin`.
+- The [`claudebar` CLI](https://github.com/mryll/claudebar), into `~/.local/bin`. You can also install it yourself, for example from the AUR or with `make install`, as its README describes.
 - [Font Awesome](https://fontawesome.com/) 7 Brands, for the Claude glyph, into `~/.local/share/fonts/claudebar`.
 
 ## Installation
@@ -79,7 +128,7 @@ GNOME Shell loads a new extension only after a restart. Press `Alt+F2`, type `r`
 | Control | Result |
 |---|---|
 | Left click on the icon | Open or close the card |
-| Middle click on the icon | Get new data now. This ignores the 60-second cache. |
+| Middle click on the icon | Get new data now. This ignores the 60-second cache of the CLI. |
 | Right click on the icon | Open the claude.ai usage page |
 | `r`, `Enter` or `Space`, in the card | Get new data now |
 | `Esc`, or a click outside the card | Close the card |
@@ -136,7 +185,7 @@ Edit `~/.config/claudebar/config.json`. The widget reloads it when you save. A k
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `refreshIntervalSec` | integer (60 or more) | `300` | How often to run `claudebar`. The API response stays in the cache for 60 seconds. A value of less than 300 can cause API rate limits. Opening the card always gets new data. |
+| `refreshIntervalSec` | integer (60 or more) | `300` | How often to run `claudebar`. The CLI keeps the API response in its cache for 60 seconds. A value of less than 300 can cause API rate limits. Opening the card always gets new data. |
 | `barWindow` | `session` \| `weekly` | `session` | The limit that gives the percentage on the taskbar. Other limits still reach you through the alert dot and the card. |
 | `showLabel` | boolean | `true` | Show the usage percentage next to the icon. |
 | `colors` | `full` \| `none` \| `bar-only` \| `panel-only` | `full` | Where color is used. A monochrome surface uses only foreground tones. The numbers and the marks continue to show the level. |
@@ -161,26 +210,27 @@ Edit `~/.config/claudebar/config.json`. The widget reloads it when you save. A k
 
 ### Gauge
 
-The four colors of the meter gauge: `low` at 0%, `mid` at 50%, `high` at 75% and `critical` at 90% and above. A percentage between two of these takes a color between them. The widget sends these colors to the `claudebar` CLI, so the gauge and the thresholds come from one place.
+The four colors of the meter gauge: `low` at 0%, `mid` at 50%, `high` at 75% and `critical` at 90% and above. A percentage between two of these takes a color between them. The widget passes these colors to the CLI with its `--color-low`, `--color-mid`, `--color-high` and `--color-critical` options, and the CLI sends back the gauge stops, so the thresholds stay the CLI's.
 
 ## How it works
 
-1. The `claudebar` CLI reads the OAuth credentials from `~/.claude/.credentials.json`. The Claude CLI writes that file.
-2. The CLI refreshes the access token if the token expires in less than 5 minutes, and calls `api.anthropic.com/api/oauth/usage` for the usage data.
-3. The widget runs `claudebar --json` in Quickshell at each refresh, and draws the card from the structured output.
-4. The widget writes what the taskbar icon shows, the label, the colors, the marks and the tooltip, to `$XDG_RUNTIME_DIR/claudebar.json`.
-5. The GNOME extension watches that file, draws the icon, and calls the widget IPC when you click.
+1. The `claudebar` CLI reads the OAuth credentials from `~/.claude/.credentials.json`, refreshes the token when it is about to expire, and calls `api.anthropic.com/api/oauth/usage`. Refer to the [claudebar README](https://github.com/mryll/claudebar#how-it-works) for the details, the cache and the rate limits.
+2. The widget runs `claudebar --json` in Quickshell at each refresh, and draws the card from the structured output of the CLI.
+3. The widget writes what the taskbar icon shows, the label, the colors, the marks and the tooltip, to `$XDG_RUNTIME_DIR/claudebar.json`.
+4. The GNOME extension watches that file, draws the icon, and calls the widget IPC when you click.
 
 ```
 quickshell/
   shell.qml       entry point: IPC and the state for the taskbar icon
   Theme.qml       reads the config
-  Usage.qml       runs the CLI and builds the model: windows, gauge, pace, freshness
+  Usage.qml       runs the claudebar CLI and builds the model: windows, gauge, pace, freshness
   Panel.qml       content of the card
-  Popup.qml       the window that holds the card next to the icon
+  Card.qml        the card surface
+  Popup.qml       the X11 window that holds the card next to the icon
   IconButton.qml  small glyph button with a tooltip
 gnome-extension/  the taskbar icon
 install.sh        install, update and uninstall
+screenshots/      the screenshots and generate.sh, which makes them
 tests/            test suite, see Tests
 ```
 
@@ -203,6 +253,8 @@ tests/            test suite, see Tests
 
 **The Claude glyph is a box.** Run `fc-list | grep "Font Awesome 7 Brands"`. If it prints nothing, run `./install.sh` again.
 
+**The numbers look wrong.** Run `claudebar --json` in a terminal. The card only draws what the CLI prints, so a problem there belongs to the [claudebar CLI](https://github.com/mryll/claudebar), and its troubleshooting section can help.
+
 **The widget logs.** Run `qs -p ~/.config/quickshell/claudebar log`.
 
 ## Uninstall
@@ -211,7 +263,7 @@ tests/            test suite, see Tests
 ./install.sh --uninstall
 ```
 
-This removes everything that claudebar put on your computer:
+This removes everything that this project put on your computer:
 
 - The widget process, and the extension from the GNOME enabled and disabled extension lists.
 - The links in `~/.config/quickshell/claudebar` and `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`.
@@ -240,7 +292,8 @@ The suite needs `qs`, the `claudebar` CLI, `jq` and `python3`.
 
 ## Credits
 
-- [claudebar](https://github.com/mryll/claudebar) by mryll: the CLI that fetches the usage data, and the usage model and meter design that this widget adapts.
-- [Omarchy](https://github.com/basecamp/omarchy): the visual design of the card.
+- **[claudebar](https://github.com/mryll/claudebar) by mryll.** The CLI that does all the data work of this widget, and the Omarchy shell plugin that the card and the taskbar icon are adapted from. If this widget is useful to you, the credit belongs there first.
+- **[Omarchy](https://github.com/basecamp/omarchy).** The visual design of the card and its components.
+- **[Quickshell](https://quickshell.org).** The QML toolkit the card runs on.
 
-Both projects use the MIT license. Refer to [LICENSE](LICENSE).
+claudebar and Omarchy use the MIT license. This project keeps their copyright notices in [LICENSE](LICENSE).

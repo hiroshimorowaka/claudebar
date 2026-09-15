@@ -23,7 +23,7 @@ lint() { # <name> <command...>
 }
 skip() { echo "  skip $1 ($2 not installed)"; }
 
-for script in install.sh tests/*.sh; do
+for script in install.sh tests/*.sh screenshots/generate.sh; do
   lint "bash syntax: $script" bash -n "$script"
 done
 
@@ -41,7 +41,7 @@ fi
 
 qmlformat="$(command -v qmlformat || ls /opt/Qt/*/gcc_64/bin/qmlformat 2>/dev/null | tail -n 1)"
 if [[ -x $qmlformat ]]; then
-  for file in quickshell/*.qml tests/qml/*.qml; do
+  for file in quickshell/*.qml tests/qml/*.qml screenshots/qml/*.qml; do
     lint "QML syntax: $file" "$qmlformat" "$file"
   done
 else
