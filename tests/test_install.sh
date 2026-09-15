@@ -81,6 +81,11 @@ EOF
 }
 
 install() { OUT="$(pinned "$1" bash "$ROOT/install.sh" "${@:2}" 2>&1)"; RC=$?; }
+run_script() { OUT="$(pinned "$1" bash "$2" "${@:3}" 2>&1)"; RC=$?; }
+
+WIDGET_DIR=".config/quickshell/claudebar"
+EXTENSION_DIR=".local/share/gnome-shell/extensions/$UUID"
+UNINSTALLER=".local/share/claudebar/uninstall.sh"
 
 setting() { cat "$1/.gsettings/$2"; }
 
@@ -97,8 +102,11 @@ section "fresh install"
 H="$(setup_home)"
 install "$H"
 check "exits 0" "$RC" "0"
-check "links the widget to the repository" "$(readlink "$H/.config/quickshell/claudebar")" "$ROOT/quickshell"
-check "links the extension to the repository" "$(readlink "$H/.local/share/gnome-shell/extensions/$UUID")" "$ROOT/gnome-extension"
+check_true "copies the widget, not a link" test -d "$H/$WIDGET_DIR" -a ! -L "$H/$WIDGET_DIR"
+check_true "the widget matches the repository" diff -r "$ROOT/quickshell" "$H/$WIDGET_DIR"
+check_true "copies the extension, not a link" test -d "$H/$EXTENSION_DIR" -a ! -L "$H/$EXTENSION_DIR"
+check_true "the extension matches the repository" diff -r "$ROOT/gnome-extension" "$H/$EXTENSION_DIR"
+check_true "installs an uninstaller" test -x "$H/$UNINSTALLER"
 check_true "creates the config from the example" cmp -s "$H/.config/claudebar/config.json" "$ROOT/config.example.json"
 check_contains "autostart runs the widget daemon" "$(cat "$H/.config/autostart/claudebar.desktop")" "Exec=$H/bin/qs -p $H/.config/quickshell/claudebar -d"
 check_true "downloads the claudebar CLI" test -x "$H/.local/bin/claudebar"
@@ -116,6 +124,43 @@ check "keeps the edited config" "$(cat "$H/.config/claudebar/config.json")" '{"b
 check "does not list the extension twice" "$(setting "$H" enabled-extensions)" "['other@example.com', '$UUID']"
 check "does not download the CLI again" "$(grep -c claudebar "$H/curl.log")" "1"
 check "does not download the font again" "$(grep -c '\.zip' "$H/curl.log")" "1"
+# Never write through a link: it would land in the repository.
+if [[ -L $H/$WIDGET_DIR ]]; then
+  no "an update removes files the repository no longer has" "the widget is a link, not a copy"
+else
+  echo "stale" >"$H/$WIDGET_DIR/Removed.qml"
+  install "$H"
+  check_false "an update removes files the repository no longer has" test -e "$H/$WIDGET_DIR/Removed.qml"
+fi
+rm -rf "$H"
+
+section "the repository can be deleted after the install"
+H="$(setup_home)"
+before="$(snapshot "$H")"
+CLONE="$(mktemp -d "${TMPDIR:-/tmp}/claudebar-clone.XXXXXX")"
+cp -r "$ROOT/." "$CLONE/"
+run_script "$H" "$CLONE/install.sh"
+check "installs from a clone" "$RC" "0"
+rm -rf "$CLONE"
+check_true "the widget survives" test -f "$H/$WIDGET_DIR/shell.qml"
+check_true "the extension survives" test -f "$H/$EXTENSION_DIR/extension.js"
+check_contains "autostart does not point into the clone" "$(cat "$H/.config/autostart/claudebar.desktop")" "-p $H/$WIDGET_DIR -d"
+run_script "$H" "$H/$UNINSTALLER"
+check "the installed uninstaller works" "$RC" "0"
+check "HOME is back to what it was before the install" "$(snapshot "$H")" "$before"
+check "restores enabled-extensions" "$(setting "$H" enabled-extensions)" "['other@example.com']"
+rm -rf "$H"
+
+section "an update replaces an install that linked to a repository"
+H="$(setup_home)"
+mkdir -p "$H/.config/quickshell" "$H/.local/share/gnome-shell/extensions"
+ln -s "$ROOT/quickshell" "$H/$WIDGET_DIR"
+ln -s "$ROOT/gnome-extension" "$H/$EXTENSION_DIR"
+install "$H"
+check "exits 0" "$RC" "0"
+check_true "the widget link became a copy" test -d "$H/$WIDGET_DIR" -a ! -L "$H/$WIDGET_DIR"
+check_true "the extension link became a copy" test -d "$H/$EXTENSION_DIR" -a ! -L "$H/$EXTENSION_DIR"
+check_true "the repository was not touched" test -f "$ROOT/quickshell/shell.qml"
 rm -rf "$H"
 
 section "an extension disabled by gnome-extensions gets enabled"
@@ -126,12 +171,13 @@ check "removes the uuid from disabled-extensions" "$(setting "$H" disabled-exten
 check "adds the uuid to enabled-extensions" "$(setting "$H" enabled-extensions)" "['other@example.com', '$UUID']"
 rm -rf "$H"
 
-section "a file in the way stops the install"
+section "a folder that is not ours stops the install"
 H="$(setup_home)"
-mkdir -p "$H/.config/quickshell/claudebar"
+mkdir -p "$H/$WIDGET_DIR" && echo mine >"$H/$WIDGET_DIR/shell.qml"
 install "$H"
 check_false "exits non-zero" test "$RC" -eq 0
-check_contains "explains what to move" "$OUT" "is not a symlink"
+check_contains "explains what to move" "$OUT" "was not installed by claudebar"
+check "keeps the folder" "$(cat "$H/$WIDGET_DIR/shell.qml")" "mine"
 rm -rf "$H"
 
 section "uninstall removes everything the install added"
@@ -140,7 +186,7 @@ before="$(snapshot "$H")"
 install "$H"
 mkdir -p "$H/.cache/claudebar" && echo '{}' >"$H/.cache/claudebar/usage.json"
 echo '{}' >"$H/run/claudebar.json"
-install "$H" --uninstall
+run_script "$H" "$H/$UNINSTALLER"
 check "exits 0" "$RC" "0"
 check "HOME is back to what it was before the install" "$(snapshot "$H")" "$before"
 check "removes the state file" "$(ls "$H/run")" ""

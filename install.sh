@@ -4,9 +4,13 @@
 # Usage: ./install.sh              install or update (safe to run again)
 #        ./install.sh --uninstall  remove everything the install added
 #
-# The install records in a manifest what it adds that was not there before:
-# the claudebar CLI, the font and every directory it creates. The uninstall
-# reads it back, so it removes all of that and nothing that was yours.
+# The install copies the widget and the extension out of the repository and
+# leaves a copy of this script as ~/.local/share/claudebar/uninstall.sh, so the
+# repository can be kept or deleted after the install.
+#
+# It also records in a manifest what it adds that was not there before: the
+# claudebar CLI, the font and every directory it creates. The uninstall reads
+# it back, so it removes all of that and nothing that was yours.
 
 set -euo pipefail
 
@@ -24,6 +28,7 @@ QS_DIR="$CONFIG_HOME/quickshell/$NAME"
 EXTENSION_DIR="$DATA_HOME/gnome-shell/extensions/$UUID"
 CONFIG_DIR="$CONFIG_HOME/$NAME"
 AUTOSTART="$CONFIG_HOME/autostart/$NAME.desktop"
+UNINSTALLER="$DATA_HOME/$NAME/uninstall.sh"
 BIN_DIR="$HOME/.local/bin"
 FONT_DIR="$DATA_HOME/fonts/$NAME"
 MANIFEST="$STATE_DIR/installed"
@@ -62,13 +67,17 @@ make_dir() {
 
 # ---- helpers
 
-link() {
-  local target="$1" path="$2"
-  if [[ -e $path && ! -L $path ]]; then
-    die "$path exists and is not a symlink; move it away and run again"
-  fi
-  make_dir "$(dirname "$path")"
-  ln -sfn "$target" "$path"
+installed_files() { grep -qxF files "$MANIFEST" 2>/dev/null; }
+
+# A path this project may replace or remove: a link from an older install
+# that pointed into the repository, or a copy this installer made.
+ours() { [[ -L $1 ]] || installed_files; }
+
+# Replace <dest> with a copy of <source>.
+place() { # <source> <dest>
+  rm -rf "$2"
+  make_dir "$(dirname "$2")"
+  cp -r "$1" "$2"
 }
 
 stop_widget() {
@@ -113,7 +122,13 @@ uninstall() {
   fi
 
   info "Removing the widget, the extension, the config and the cache"
-  rm -f "$QS_DIR" "$EXTENSION_DIR" "$AUTOSTART" "$RUNTIME_STATE"
+  local path
+  for path in "$QS_DIR" "$EXTENSION_DIR" "$(dirname "$UNINSTALLER")"; do
+    if [[ -L $path ]] || { [[ -e $path ]] && [[ ${#entries[@]} -gt 0 ]] && printf '%s\n' "${entries[@]}" | grep -qxF files; }; then
+      rm -rf "$path"
+    fi
+  done
+  rm -f "$AUTOSTART" "$RUNTIME_STATE"
   rm -rf "$CONFIG_DIR" "$CACHE_DIR" "$STATE_DIR"
 
   local entry
@@ -192,9 +207,21 @@ install_font() {
 }
 
 install_widget() {
-  info "Linking the widget and the GNOME extension"
-  link "$REPO/quickshell" "$QS_DIR"
-  link "$REPO/gnome-extension" "$EXTENSION_DIR"
+  local path
+  for path in "$QS_DIR" "$EXTENSION_DIR"; do
+    if [[ -e $path ]] && ! ours "$path"; then
+      die "$path was not installed by claudebar; move it away and run again"
+    fi
+  done
+
+  stop_widget
+  info "Copying the widget, the GNOME extension and the uninstaller"
+  place "$REPO/quickshell" "$QS_DIR"
+  place "$REPO/gnome-extension" "$EXTENSION_DIR"
+  make_dir "$(dirname "$UNINSTALLER")"
+  cp "$REPO/install.sh" "$UNINSTALLER"
+  chmod +x "$UNINSTALLER"
+  record files
 
   if [[ -f $CONFIG_DIR/config.json ]]; then
     info "Keeping your config at $CONFIG_DIR/config.json"
@@ -215,14 +242,13 @@ X-GNOME-Autostart-enabled=true
 NoDisplay=true
 EOF
 
-  stop_widget
   qs -p "$QS_DIR" -d >/dev/null 2>&1
 
   info "Enabling the GNOME extension"
   set_extension_enabled 1
 }
 
-if [[ ${1:-} == "--uninstall" ]]; then
+if [[ ${1:-} == "--uninstall" || $(basename "$0") == uninstall.sh ]]; then
   uninstall
   exit 0
 fi
@@ -232,7 +258,7 @@ install_cli
 install_font
 install_widget
 
-info "Done."
+info "Done. To uninstall later, run $UNINSTALLER"
 if ! gnome-extensions info "$UUID" 2>/dev/null | grep -q "State: ACTIVE"; then
   echo "    GNOME Shell loads a new extension after a restart: press Alt+F2, type r and press Enter."
 fi
