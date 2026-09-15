@@ -1,0 +1,29 @@
+{
+  "refreshIntervalSec": 300,
+  "barWindow": "session",
+  "showLabel": true,
+  "colors": "full",
+
+  "style": {
+    "fontFamily": "JetBrainsMono Nerd Font",
+    "fontSize": 12,
+    "width": 340,
+    "padding": 14,
+    "gap": 5,
+    "radius": 0,
+    "borderWidth": 2,
+    "border": "#cacccc",
+    "background": "#101315",
+    "backgroundOpacity": 1.0,
+    "foreground": "#cacccc",
+    "urgent": "#a55555",
+    "brand": "#d97757"
+  },
+
+  "gauge": {
+    "low": "#98c379",
+    "mid": "#e5c07b",
+    "high": "#d19a66",
+    "critical": "#e06c75"
+  }
+}

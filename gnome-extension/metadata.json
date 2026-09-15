@@ -1,0 +1,6 @@
+{
+  "uuid": "claude-usage@hiroshi",
+  "name": "Claude Usage",
+  "description": "Claude plan usage in the taskbar. Click opens the usage card, middle click refreshes, right click opens claude.ai usage.",
+  "shell-version": ["46"]
+}
