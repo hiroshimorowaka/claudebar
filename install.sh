@@ -2,7 +2,11 @@
 # Install claudebar for the current user on a GNOME X11 desktop.
 #
 # Usage: ./install.sh              install or update (safe to run again)
-#        ./install.sh --uninstall  remove everything except your config
+#        ./install.sh --uninstall  remove everything the install added
+#
+# The install records in a manifest what it adds that was not there before:
+# the claudebar CLI, the font and every directory it creates. The uninstall
+# reads it back, so it removes all of that and nothing that was yours.
 
 set -euo pipefail
 
@@ -10,12 +14,19 @@ REPO="$(cd "$(dirname "$0")" && pwd)"
 NAME="claudebar"
 UUID="claudebar@hiroshi"
 
-QS_DIR="$HOME/.config/quickshell/$NAME"
-EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/$NAME"
-AUTOSTART="$HOME/.config/autostart/$NAME.desktop"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/$NAME"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/$NAME"
+RUNTIME_STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$NAME.json"
+
+QS_DIR="$CONFIG_HOME/quickshell/$NAME"
+EXTENSION_DIR="$DATA_HOME/gnome-shell/extensions/$UUID"
+CONFIG_DIR="$CONFIG_HOME/$NAME"
+AUTOSTART="$CONFIG_HOME/autostart/$NAME.desktop"
 BIN_DIR="$HOME/.local/bin"
-FONT_DIR="$HOME/.local/share/fonts/$NAME"
+FONT_DIR="$DATA_HOME/fonts/$NAME"
+MANIFEST="$STATE_DIR/installed"
 
 CLAUDEBAR_CLI_URL="https://raw.githubusercontent.com/mryll/claudebar/master/claudebar"
 FONT_AWESOME_VERSION="7.3.1"
@@ -25,17 +36,45 @@ info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# ---- manifest
+
+record() {
+  mkdir -p "$STATE_DIR"
+  grep -qxF "$1" "$MANIFEST" 2>/dev/null || printf '%s\n' "$1" >>"$MANIFEST"
+}
+
+# Create a directory, recording the outermost one that did not exist.
+make_dir() {
+  local dir="$1" missing=""
+  while [[ ! -d $dir ]]; do
+    missing="$dir"
+    dir="$(dirname "$dir")"
+  done
+  [[ -n $missing ]] || return 0
+  mkdir -p "$1"
+  # The manifest lives in STATE_DIR: record its own parent only.
+  if [[ $missing == "$STATE_DIR" ]]; then return 0; fi
+  if [[ $STATE_DIR == "$missing"/* && ! -d $STATE_DIR ]]; then
+    mkdir -p "$STATE_DIR"
+  fi
+  record "dir $missing"
+}
+
+# ---- helpers
+
 link() {
   local target="$1" path="$2"
   if [[ -e $path && ! -L $path ]]; then
     die "$path exists and is not a symlink; move it away and run again"
   fi
-  mkdir -p "$(dirname "$path")"
+  make_dir "$(dirname "$path")"
   ln -sfn "$target" "$path"
 }
 
 stop_widget() {
-  command -v qs >/dev/null && qs -p "$QS_DIR" kill >/dev/null 2>&1 || true
+  if command -v qs >/dev/null; then
+    qs -p "$QS_DIR" kill >/dev/null 2>&1 || true
+  fi
 }
 
 # GNOME reads two lists, and disabled-extensions wins over enabled-extensions.
@@ -49,27 +88,66 @@ uuid, enable = sys.argv[1], sys.argv[2] == "1"
 
 def update(key, keep):
     current = subprocess.check_output(["gsettings", "get", "org.gnome.shell", key], text=True).strip()
-    extensions = [e for e in ast.literal_eval(current.replace("@as ", "")) or [] if e != uuid]
-    subprocess.check_call(["gsettings", "set", "org.gnome.shell", key, str(extensions + ([uuid] if keep else []))])
+    extensions = ast.literal_eval(current.replace("@as ", "")) or []
+    updated = [e for e in extensions if e != uuid] + ([uuid] if keep else [])
+    if updated != extensions:
+        subprocess.check_call(["gsettings", "set", "org.gnome.shell", key, str(updated)])
 
 update("enabled-extensions", enable)
 update("disabled-extensions", False)
 EOF
 }
 
+# ---- uninstall
+
 uninstall() {
+  local entries=()
+  [[ -f $MANIFEST ]] && mapfile -t entries <"$MANIFEST"
+
   info "Stopping the widget"
   stop_widget
-  info "Disabling the GNOME extension"
-  set_extension_enabled 0
-  rm -f "$QS_DIR" "$EXTENSION_DIR" "$AUTOSTART" "${XDG_RUNTIME_DIR:-/run/user/$UID}/$NAME.json"
-  info "Removed. Your config is kept in $CONFIG_DIR"
+
+  if command -v gsettings >/dev/null && command -v python3 >/dev/null; then
+    info "Disabling the GNOME extension"
+    set_extension_enabled 0
+  fi
+
+  info "Removing the widget, the extension, the config and the cache"
+  rm -f "$QS_DIR" "$EXTENSION_DIR" "$AUTOSTART" "$RUNTIME_STATE"
+  rm -rf "$CONFIG_DIR" "$CACHE_DIR" "$STATE_DIR"
+
+  local entry
+  for entry in "${entries[@]}"; do
+    case "$entry" in
+      cli)
+        info "Removing the claudebar CLI"
+        rm -f "$BIN_DIR/claudebar"
+        ;;
+      font)
+        info "Removing the Font Awesome Brands font"
+        rm -rf "$FONT_DIR"
+        command -v fc-cache >/dev/null && fc-cache -f >/dev/null 2>&1 || true
+        ;;
+    esac
+  done
+
+  # Directories the install created, if nothing else lives in them now.
+  for entry in "${entries[@]}"; do
+    if [[ $entry == "dir "* && -d ${entry#dir } ]]; then
+      find "${entry#dir }" -depth -type d -empty -delete
+    fi
+  done
+
+  info "claudebar is uninstalled."
 }
+
+# ---- install
 
 check_requirements() {
   command -v gnome-shell >/dev/null || die "GNOME Shell is required"
   [[ ${XDG_SESSION_TYPE:-} == x11 ]] || warn "claudebar needs a GNOME X11 session; the popup cannot open on GNOME Wayland"
   command -v qs >/dev/null || die "Quickshell (qs) is required: https://quickshell.org/docs/guide/install-setup/"
+  local tool
   for tool in curl jq python3 gsettings; do
     command -v "$tool" >/dev/null || die "$tool is required"
   done
@@ -80,15 +158,19 @@ check_requirements() {
 }
 
 install_cli() {
-  if command -v claudebar >/dev/null; then
+  if [[ -x $BIN_DIR/claudebar ]] && grep -qxF cli "$MANIFEST" 2>/dev/null; then
+    info "claudebar CLI already installed at $BIN_DIR/claudebar"
+  elif command -v claudebar >/dev/null; then
     info "claudebar CLI found at $(command -v claudebar)"
-    return
+  else
+    info "Installing the claudebar CLI to $BIN_DIR"
+    make_dir "$BIN_DIR"
+    curl -fsSL "$CLAUDEBAR_CLI_URL" -o "$BIN_DIR/claudebar"
+    chmod +x "$BIN_DIR/claudebar"
+    record cli
   fi
-  info "Installing the claudebar CLI to $BIN_DIR"
-  mkdir -p "$BIN_DIR"
-  curl -fsSL "$CLAUDEBAR_CLI_URL" -o "$BIN_DIR/claudebar"
-  chmod +x "$BIN_DIR/claudebar"
-  [[ ":$PATH:" == *":$BIN_DIR:"* ]] || warn "$BIN_DIR is not on your PATH; add it so the widget can run claudebar"
+  [[ ":$PATH:" == *":$BIN_DIR:"* ]] || command -v claudebar >/dev/null ||
+    warn "$BIN_DIR is not on your PATH; add it so the widget can run claudebar"
 }
 
 install_font() {
@@ -103,8 +185,9 @@ install_font() {
   trap 'rm -rf "$tmp"' RETURN
   curl -fsSL "$FONT_AWESOME_URL" -o "$tmp/fontawesome.zip"
   unzip -q -j "$tmp/fontawesome.zip" "*/otfs/Font Awesome 7 Brands-Regular-400.otf" -d "$tmp"
-  mkdir -p "$FONT_DIR"
+  make_dir "$FONT_DIR"
   cp "$tmp/Font Awesome 7 Brands-Regular-400.otf" "$FONT_DIR/"
+  record font
   fc-cache -f "$FONT_DIR" >/dev/null
 }
 
@@ -117,12 +200,12 @@ install_widget() {
     info "Keeping your config at $CONFIG_DIR/config.json"
   else
     info "Creating $CONFIG_DIR/config.json"
-    mkdir -p "$CONFIG_DIR"
+    make_dir "$CONFIG_DIR"
     cp "$REPO/config.example.json" "$CONFIG_DIR/config.json"
   fi
 
   info "Starting the widget with the session"
-  mkdir -p "$(dirname "$AUTOSTART")"
+  make_dir "$(dirname "$AUTOSTART")"
   cat >"$AUTOSTART" <<EOF
 [Desktop Entry]
 Type=Application

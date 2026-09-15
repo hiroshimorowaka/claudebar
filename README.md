@@ -20,6 +20,7 @@ It is built for a GNOME X11 desktop, such as Zorin OS or Ubuntu on Xorg, with [Q
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
 - [Uninstall](#uninstall)
+- [Tests](#tests)
 - [Credits](#credits)
 
 ## Features
@@ -66,6 +67,8 @@ The installer:
 3. Creates `~/.config/claudebar/config.json` from `config.example.json`. It never replaces a config that exists.
 4. Starts the widget and adds `~/.config/autostart/claudebar.desktop`, so it starts with your session.
 5. Enables the GNOME extension.
+
+The installer records what it adds that was not on your computer before, in `~/.local/state/claudebar/installed`: the `claudebar` CLI, the font, and each directory it creates. The uninstall uses that list.
 
 You can run the installer again at any time. It keeps your config.
 
@@ -178,6 +181,7 @@ quickshell/
   IconButton.qml  small glyph button with a tooltip
 gnome-extension/  the taskbar icon
 install.sh        install, update and uninstall
+tests/            test suite, see Tests
 ```
 
 > [!WARNING]
@@ -207,7 +211,32 @@ install.sh        install, update and uninstall
 ./install.sh --uninstall
 ```
 
-This stops the widget, disables the extension, and removes the links and the autostart entry. It keeps `~/.config/claudebar/config.json`, the `claudebar` CLI and the font.
+This removes everything that claudebar put on your computer:
+
+- The widget process, and the extension from the GNOME enabled and disabled extension lists.
+- The links in `~/.config/quickshell/claudebar` and `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`.
+- The autostart entry, your config in `~/.config/claudebar`, the `claudebar` CLI cache in `~/.cache/claudebar`, the state in `~/.local/state/claudebar` and `$XDG_RUNTIME_DIR/claudebar.json`.
+- The `claudebar` CLI and the Font Awesome Brands font, if the installer installed them.
+- Each directory the installer created, when it is empty.
+
+It keeps what was there before the install, such as a `claudebar` CLI or a Font Awesome font that you had already installed. It does not remove Quickshell, which you install yourself, or this repository. Delete the repository folder to finish.
+
+## Tests
+
+```bash
+tests/run_all.sh
+```
+
+The suite runs in about 15 seconds and never touches your real desktop. Each test runs in a temporary `HOME` with every XDG directory inside it, and a stub takes the place of the network, GNOME, fontconfig and Quickshell where a test does not need the real program.
+
+| File | What it checks |
+|---|---|
+| `tests/test_cli_contract.sh` | Runs the `claudebar` CLI on your `PATH` with crafted credentials and a cached API response, and checks every `--json` field the widget reads: windows, pace, palette, extra usage, stale data, API errors, loading and a missing login. Run it after you update the CLI. |
+| `tests/test_widget.sh` | Runs `Usage.qml` and `Panel.qml` headless in Quickshell (`QT_QPA_PLATFORM=offscreen`) against the fixtures in `tests/fixtures`, with a fake CLI. Checks the taskbar label, color and alert dot, the gauge, the pace and money texts, every config option and its defaults, stale data, errors, and a missing CLI. |
+| `tests/test_install.sh` | Runs `install.sh` in a temporary `HOME` with stubs for GNOME, Quickshell, fontconfig and downloads. Checks the links, the config, the autostart entry, the extension lists, a second install, and that `--uninstall` leaves `HOME` exactly as it was before the install. |
+| `tests/run_all.sh` | Runs the three files above, then lint: bash syntax, `shellcheck`, `extension.js` syntax with `node`, QML syntax with `qmlformat`, valid JSON, and that the widget, the extension and the installer use the same names. A lint check is skipped when its tool is not installed. |
+
+The suite needs `qs`, the `claudebar` CLI, `jq` and `python3`.
 
 ## Credits
 

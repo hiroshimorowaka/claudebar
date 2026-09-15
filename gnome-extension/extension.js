@@ -17,7 +17,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 const WIDGET = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'quickshell', 'claudebar']);
 const STATE = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'claudebar.json']);
 const USAGE_URL = 'https://claude.ai/settings/usage';
-const DIM = '#838687';
+const DIM = '#828484';
 
 export default class ClaudebarExtension extends Extension {
     enable() {

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Stands in for the claudebar CLI in widget tests. Logs its arguments and
+# prints ~/fixture.json, or ~/fixture-2.json from the second call on when it
+# exists, then exits with the code in ~/fixture.exit (0 by default).
+echo "$*" >>"$HOME/claudebar-args.log"
+calls=$(wc -l <"$HOME/claudebar-args.log")
+if [ "$calls" -gt 1 ] && [ -f "$HOME/fixture-2.json" ]; then
+  cat "$HOME/fixture-2.json"
+elif [ -f "$HOME/fixture.json" ]; then
+  cat "$HOME/fixture.json"
+fi
+exit "$(cat "$HOME/fixture.exit" 2>/dev/null || echo 0)"

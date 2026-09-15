@@ -1,0 +1,119 @@
+{
+  "schema_version": 2,
+  "loading": false,
+  "stale": false,
+  "stale_reason": null,
+  "error": null,
+  "last_error": null,
+  "updated_at": "2026-09-15T12:34:00Z",
+  "extra_usage": {
+    "used_credit_cents": 3750,
+    "available_credit_cents": 1250,
+    "funded_credit_cents": 5000,
+    "monthly_limit_cents": 20000,
+    "balance_known": true,
+    "used_pct": 75,
+    "state": "high"
+  },
+  "palette": {
+    "low": "#98c379",
+    "mid": "#e5c07b",
+    "high": "#d19a66",
+    "critical": "#e06c75",
+    "stops": [
+      {
+        "pct": 0,
+        "color": "#98c379"
+      },
+      {
+        "pct": 50,
+        "color": "#e5c07b"
+      },
+      {
+        "pct": 75,
+        "color": "#d19a66"
+      },
+      {
+        "pct": 90,
+        "color": "#e06c75"
+      },
+      {
+        "pct": 100,
+        "color": "#e06c75"
+      }
+    ]
+  },
+  "plan": "Max 5x",
+  "windows": [
+    {
+      "id": "session",
+      "label": "Session",
+      "group": null,
+      "used_pct": 34,
+      "elapsed_pct": 15,
+      "reset_at": "2099-01-01T00:00:00Z",
+      "state": "low",
+      "pace": {
+        "delta_points": 19,
+        "state": "hot",
+        "points_label": "19pts ahead"
+      }
+    },
+    {
+      "id": "weekly",
+      "label": "Weekly",
+      "group": null,
+      "used_pct": 68,
+      "elapsed_pct": 68,
+      "reset_at": "2099-01-01T00:00:00Z",
+      "state": "mid",
+      "pace": {
+        "delta_points": 0,
+        "state": "on",
+        "points_label": "on pace"
+      }
+    },
+    {
+      "id": "sonnet",
+      "label": "Weekly",
+      "group": "Sonnet",
+      "used_pct": 82,
+      "elapsed_pct": 95,
+      "reset_at": "2099-01-01T00:00:00Z",
+      "state": "high",
+      "pace": {
+        "delta_points": -13,
+        "state": "under",
+        "points_label": "13pts under"
+      }
+    },
+    {
+      "id": "model_0",
+      "label": "Weekly",
+      "group": "Opus",
+      "used_pct": 94,
+      "elapsed_pct": 60,
+      "reset_at": "2099-01-01T00:00:00Z",
+      "state": "critical",
+      "pace": {
+        "delta_points": 34,
+        "state": "hot",
+        "points_label": "34pts ahead"
+      }
+    },
+    {
+      "id": "model_1",
+      "label": "Weekly",
+      "group": "Fable",
+      "used_pct": 12,
+      "elapsed_pct": 60,
+      "reset_at": "2099-01-01T00:00:00Z",
+      "state": "low",
+      "pace": {
+        "delta_points": -48,
+        "state": "under",
+        "points_label": "48pts under"
+      }
+    }
+  ]
+}

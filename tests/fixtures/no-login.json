@@ -1,0 +1,8 @@
+{
+  "schema_version": 2,
+  "loading": false,
+  "error": {
+    "message": "No credentials. Run claude to log in."
+  },
+  "windows": []
+}
