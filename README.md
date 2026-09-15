@@ -5,7 +5,13 @@ A GNOME X11 frontend for [claudebar](https://github.com/mryll/claudebar) by mryl
 > [!NOTE]
 > **This is a wrapper, not a new implementation.** All the usage data comes from the original [`claudebar` CLI](https://github.com/mryll/claudebar): it reads your Claude credentials, calls the usage API, caches the answer, and works out the limits, the pace and the color gauge. claudebar ships frontends for Waybar and for the Omarchy shell, which run on Wayland. This project brings the Omarchy shell panel to a GNOME desktop on X11, such as Zorin OS or Ubuntu on Xorg.
 
-The taskbar shows the Claude glyph and a short usage percentage. A click opens a card with one section for each limit: the session limit, the weekly limit and the per-model limits, each with a progress bar, a color for the level of use, and the time until it resets.
+The taskbar shows the Claude glyph and a short usage percentage:
+
+<p align="center">
+  <img src="screenshots/taskbar.png" alt="The claudebar icon in the GNOME taskbar, at 73%" height="42">
+</p>
+
+A click opens a card with one section for each limit: the session limit, the weekly limit and the per-model limits, each with a progress bar, a color for the level of use, and the time until it resets.
 
 <p align="center">
   <img src="screenshots/panel.png" alt="The claudebar usage card for GNOME" width="340">
@@ -62,7 +68,13 @@ Added by this project:
 
 ## Screenshots
 
-Every screenshot here comes from `screenshots/generate.sh`: the real widget and the real `claudebar` CLI, with fake credentials and a fake API response. Refer to [Tests](#tests).
+The icon in the GNOME taskbar. The glyph and the percentage take the gauge color of the value they show, or the text color in monochrome:
+
+| Colors | Monochrome (`"colors": "none"`) |
+| :---: | :---: |
+| <img src="screenshots/taskbar.png" alt="The taskbar icon in color, at 73%" height="42"> | <img src="screenshots/taskbar-monochrome.png" alt="The taskbar icon without color, at 73%" height="34"> |
+
+The card screenshots below come from `screenshots/generate.sh`: the real widget and the real `claudebar` CLI, with fake credentials and a fake API response. The taskbar screenshots are taken by hand, because the GNOME Shell extension only draws inside GNOME Shell.
 
 | Max plan | Pro plan | Monochrome (`"colors": "none"`) |
 | :---: | :---: | :---: |
