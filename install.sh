@@ -24,7 +24,9 @@ STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/$NAME"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/$NAME"
 RUNTIME_STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$NAME.json"
 
-QS_DIR="$CONFIG_HOME/quickshell/$NAME"
+QS_DIR="$DATA_HOME/$NAME/quickshell"
+# Where versions before 2026-09-15 put the widget.
+OLD_QS_DIR="$CONFIG_HOME/quickshell/$NAME"
 EXTENSION_DIR="$DATA_HOME/gnome-shell/extensions/$UUID"
 CONFIG_DIR="$CONFIG_HOME/$NAME"
 AUTOSTART="$CONFIG_HOME/autostart/$NAME.desktop"
@@ -83,6 +85,18 @@ place() { # <source> <dest>
 stop_widget() {
   if command -v qs >/dev/null; then
     qs -p "$QS_DIR" kill >/dev/null 2>&1 || true
+    qs -p "$OLD_QS_DIR" kill >/dev/null 2>&1 || true
+  fi
+}
+
+# An older install put the widget in ~/.config/quickshell/claudebar, as a link
+# into the repository or as a copy. Remove it only when it is that widget, so a
+# Quickshell config of the user's own with the same name stays.
+remove_old_widget() {
+  [[ -f $OLD_QS_DIR/shell.qml ]] && grep -qF 'target: "claudebar"' "$OLD_QS_DIR/shell.qml" || return 0
+  if [[ -L $OLD_QS_DIR ]] || installed_files; then
+    info "Removing the widget from its old place, $OLD_QS_DIR"
+    rm -rf "$OLD_QS_DIR"
   fi
 }
 
@@ -122,6 +136,7 @@ uninstall() {
   fi
 
   info "Removing the widget, the extension, the config and the cache"
+  remove_old_widget
   local path
   for path in "$QS_DIR" "$EXTENSION_DIR" "$(dirname "$UNINSTALLER")"; do
     if [[ -L $path ]] || { [[ -e $path ]] && [[ ${#entries[@]} -gt 0 ]] && printf '%s\n' "${entries[@]}" | grep -qxF files; }; then
@@ -215,6 +230,7 @@ install_widget() {
   done
 
   stop_widget
+  remove_old_widget
   info "Copying the widget, the GNOME extension and the uninstaller"
   place "$REPO/quickshell" "$QS_DIR"
   place "$REPO/gnome-extension" "$EXTENSION_DIR"

@@ -1,7 +1,7 @@
 // Claude usage in the GNOME taskbar.
 //
-// The data and the usage card live in Quickshell (~/.config/quickshell/
-// claudebar). That process writes what the icon shows — label, colors,
+// The data and the usage card live in Quickshell (~/.local/share/claudebar/
+// quickshell). That process writes what the icon shows — label, colors,
 // stale mark, alert dot, tooltip, style — to $XDG_RUNTIME_DIR/claudebar.json.
 // This extension draws it and forwards clicks.
 
@@ -14,7 +14,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const WIDGET = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'quickshell', 'claudebar']);
+const WIDGET = GLib.build_filenamev([GLib.get_user_data_dir(), 'claudebar', 'quickshell']);
 const STATE = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'claudebar.json']);
 const USAGE_URL = 'https://claude.ai/settings/usage';
 const DIM = '#828484';

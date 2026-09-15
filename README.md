@@ -124,7 +124,7 @@ cd claudebar
 The installer:
 
 1. Checks the requirements, and installs the `claudebar` CLI and the Font Awesome Brands font if they are missing.
-2. Copies `quickshell/` to `~/.config/quickshell/claudebar` and `gnome-extension/` to `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`.
+2. Copies `quickshell/` to `~/.local/share/claudebar/quickshell` and `gnome-extension/` to `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`. An older install in `~/.config/quickshell/claudebar` is moved there.
 3. Copies itself to `~/.local/share/claudebar/uninstall.sh`, so you can uninstall without the repository.
 4. Creates `~/.config/claudebar/config.json` from `config.example.json`. It never replaces a config that exists.
 5. Starts the widget and adds `~/.config/autostart/claudebar.desktop`, so it starts with your session.
@@ -154,8 +154,8 @@ The footer of the card shows the time of the last update and a refresh button (ó
 The widget answers IPC, so a GNOME custom shortcut or a script can drive it:
 
 ```bash
-qs -p ~/.config/quickshell/claudebar ipc call claudebar refresh   # fetch now
-qs -p ~/.config/quickshell/claudebar ipc call claudebar close     # close the card
+qs -p ~/.local/share/claudebar/quickshell ipc call claudebar refresh   # fetch now
+qs -p ~/.local/share/claudebar/quickshell ipc call claudebar close     # close the card
 ```
 
 `toggleAt <x> <edge> <size> <top|bottom>` opens the card at a position on the screen. The extension calls it with the icon position.
@@ -262,7 +262,7 @@ tests/            test suite, see Tests
 | An HTTP error at the bottom of the card | API error behind data that is still usable | Examine your internet connection. A 4xx error usually needs a new login. |
 | "claudebar not found on PATH" in the card | The CLI is not installed | Run `./install.sh` again, or copy the command with the button in the card |
 | No icon in the taskbar | The extension is not loaded | Restart GNOME Shell with `Alt+F2`, `r`. Then run `gnome-extensions info claudebar@hiroshi`. |
-| The icon does nothing on click | The widget is not running | Run `qs -p ~/.config/quickshell/claudebar -d` |
+| The icon does nothing on click | The widget is not running | Run `qs -p ~/.local/share/claudebar/quickshell -d` |
 
 **The card ignores my keyboard.** Click once inside the card, then use the keys.
 
@@ -270,7 +270,7 @@ tests/            test suite, see Tests
 
 **The numbers look wrong.** Run `claudebar --json` in a terminal. The card only draws what the CLI prints, so a problem there belongs to the [claudebar CLI](https://github.com/mryll/claudebar), and its troubleshooting section can help.
 
-**The widget logs.** Run `qs -p ~/.config/quickshell/claudebar log`.
+**The widget logs.** Run `qs -p ~/.local/share/claudebar/quickshell log`.
 
 ## Uninstall
 
@@ -281,7 +281,7 @@ tests/            test suite, see Tests
 If you kept the clone, `./install.sh --uninstall` does the same. This removes everything that this project put on your computer:
 
 - The widget process, and the extension from the GNOME enabled and disabled extension lists.
-- The widget in `~/.config/quickshell/claudebar`, the extension in `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`, and the uninstaller in `~/.local/share/claudebar`.
+- The widget and the uninstaller in `~/.local/share/claudebar`, and the extension in `~/.local/share/gnome-shell/extensions/claudebar@hiroshi`.
 - The autostart entry, your config in `~/.config/claudebar`, the `claudebar` CLI cache in `~/.cache/claudebar`, the state in `~/.local/state/claudebar` and `$XDG_RUNTIME_DIR/claudebar.json`.
 - The `claudebar` CLI and the Font Awesome Brands font, if the installer installed them.
 - Each directory the installer created, when it is empty.
