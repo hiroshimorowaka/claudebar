@@ -38,15 +38,22 @@ stop_widget() {
   command -v qs >/dev/null && qs -p "$QS_DIR" kill >/dev/null 2>&1 || true
 }
 
+# GNOME reads two lists, and disabled-extensions wins over enabled-extensions.
+# `gnome-extensions disable` adds the uuid to the disabled list, so enabling
+# has to take it out of there too.
 set_extension_enabled() {
   local enable="$1"
   python3 - "$UUID" "$enable" <<'EOF'
 import ast, subprocess, sys
 uuid, enable = sys.argv[1], sys.argv[2] == "1"
-current = subprocess.check_output(["gsettings", "get", "org.gnome.shell", "enabled-extensions"], text=True).strip()
-extensions = ast.literal_eval(current.replace("@as ", "")) or []
-extensions = [e for e in extensions if e != uuid] + ([uuid] if enable else [])
-subprocess.check_call(["gsettings", "set", "org.gnome.shell", "enabled-extensions", str(extensions)])
+
+def update(key, keep):
+    current = subprocess.check_output(["gsettings", "get", "org.gnome.shell", key], text=True).strip()
+    extensions = [e for e in ast.literal_eval(current.replace("@as ", "")) or [] if e != uuid]
+    subprocess.check_call(["gsettings", "set", "org.gnome.shell", key, str(extensions + ([uuid] if keep else []))])
+
+update("enabled-extensions", enable)
+update("disabled-extensions", False)
 EOF
 }
 
@@ -129,7 +136,7 @@ EOF
   qs -p "$QS_DIR" -d >/dev/null 2>&1
 
   info "Enabling the GNOME extension"
-  gnome-extensions enable "$UUID" 2>/dev/null || set_extension_enabled 1
+  set_extension_enabled 1
 }
 
 if [[ ${1:-} == "--uninstall" ]]; then
